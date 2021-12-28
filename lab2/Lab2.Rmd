@@ -1,0 +1,136 @@
+---
+title: "Lab 2"
+author: "Neha Maddali"
+date: "9/16/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Reading in the data
+
+```{r}
+library(classdata)
+data(choco)
+str(choco)
+```
+
+## Searching for the Best Chocolates
+
+1. How are the cocoa percent distributed? Create both a histogram and a boxplot and describe them. Don’t forget to mention outliers, if there are any.
+
+```{r}
+hist(choco$CocoaPercent, main="Distribution of Cocoa Percentage", xlab="Cocoa Percentage")
+```
+
+```{r}
+boxplot(choco$CocoaPercent, main="Distribution of Cocoa Percentage", ylab="Cocoa Percent")
+```
+
+**Analysis** From the histogram, it's clear that the distribution of ratings is skewed to the left-meaning that the majority of ratings are on the higher end of the spectrum. And from the boxplot, the median value appears to be around 70. Additionlly, there are many outliers. All the ones outside the boxplot range of approximately 65 to 80.
+
+2. How does the number of ratings depend on the country of bean origin? Draw a bar chart of the number of ratings by bean origin. [Hint: If your graph is too dense and the labels are not legible, show fewer bean origins.]
+
+```{r}
+#lvl <- c('2006', '2007','2008','2009','2010','2011','2012','2013','2014','2015',
+ #        '2016','2017','2018','2019','2020','2021')
+#lvl <- c(choco$CountryBeanOrigin)
+#chocoYears <- factor(choco$ReviewDate, levels = lvl)
+#barplot(table(chocoYears), xlab = 'Country of Bean Origin', ylab = 'Number of Ratings', main = 'Number of Ratings by Country of Bean Origin', ylim = c(0,300), las = 2)
+
+origin <- choco[c("CountryBeanOrigin", "Rating")]
+topO <- origin[origin$Rating == 4,]
+```
+
+```{r}
+par(mar=c(7, 4.2, 4.2, 2.4))
+barplot(table(topO$CountryBeanOrigin), las=2, cex.names=0.55)
+title(main="Top Places of Origin", xlab="", ylab="Rating")
+mtext(text = 'Country of Origin',side=1, line= 5.5)
+```
+
+**Analysis** It can be seen in the barplot that Peru had the most highest ratings. Venezuela was really close and came in second most ratings.
+
+3. Do ratings depend on the cocoa percentage of a chocolate bar? Create both numerical and graphical summaries, and explain. [Hint: Think about why the scatterplot is not a very good choice for visualization here.]
+
+```{r}
+percent <- choco[c("CocoaPercent","Rating")]
+summary(percent)
+str(percent)
+plot(percent)
+title(main="Cocoa Percentage vs Rating")
+
+
+
+
+
+
+
+cocoa <- sort(table(choco$CocoaPercent), decreasing = TRUE)
+cocoapercent <- head(cocoa, 20)
+
+barplot(cocoa, las =2, cex.names = 0.5, main = "Number of Rating vs Cocoa Percentage", xlab = "Cocoa Percent", ylab = "Number of Ratings")
+```
+
+**Analysis** From the scatterplot, there doesn't seem too much of a correlation between cocoa percentage and rating. Using a barplot, we can see that there are the most ratings with a Cocoa Percent of 70. 
+
+4. How do different bean origins compare in terms of the flavor of chocolates? Are beans from some places better than the other? Create both numerical and graphical summaries, and explain.
+
+```{r}
+choco$Characteristics1 <- as.factor(choco$Characteristics1)
+head(sort(table(choco$Characteristics1), decreasing = TRUE), n = 20)
+choco.flavorSub = choco[choco$Characteristics1 %in% c('creamy', 'sandy','intense','nuty','fatty','sweet',                                              'spicy', 'oily' ,'roasty', 'rich cocoa'),]
+choco.flavorSub$Test <- as.character(choco.flavorSub$Characteristics1)
+choco.flavorSub$Test <- as.factor(choco.flavorSub$Test)
+
+barplot(table(choco.flavorSub$Test))
+
+country_filtered <- table(choco$CountryBeanOrigin) 
+head(sort(country_filtered, decreasing = TRUE), n=5)
+
+head(tapply(choco$Rating, choco$CountryBeanOrigin, summary),n=5)
+
+```
+**Analysis** Brazil had the highest rating in creamy whereas Nicaragua had the lowest rating in creamy. The summary analysis had shown that Brazil also had the highest average rating of chocolate. The origin seems to have an impact on the rating and flavors of chocolate.
+
+5. Brainstorm two analyses you would like to perform. Describe in plain language what comparisons are you making. Create suitable numerical and graphical summaries for your analyses. Describe the results.
+
+**Analysis 1**
+I wanted to see which company had the most highest rated chocolate. From the plotting, we can see that the company "Soma" has the most counts of 4.0 rated chocolate with 13 data entries. Since I chose to look at the top rated chocolates, I only looked at data entries that had a 4.0 rating. This analysis suggests that the company may have an effect on the rating of chocolate, since the chocolates rated 4.0 were not distributed evenly between companies.
+
+```{r}
+company <- choco[c("Company", "Rating")]
+topC <- company[company$Rating == 4,]
+```
+```{r}
+par(mar=c(12, 4.2, 4.2, 2.4))
+barplot(table(topC$Company), las=2, cex.names=0.55, main ='Top Companies', xlab ='', ylab = 'Count')
+mtext(text = 'Companies',side=1, line= 10.0)
+```
+```{r}
+top_company <- sum(topC == 'Soma')
+top_company
+``` 
+
+**Analysis 2 ** 
+I was interested to see if a certain set of ingredients tended to produce chocolate bars with higher ratings.To begin, I searched for the ingredient profiles with the most entries and subsetted a vector containing only those entries, leaving out chocolate bars with very uinque ingredient profiles. I then subsetted the dataframe to contain only those ingredient profiles. From there, I created a boxplot, showing the distributions of ratings for
+each ingredient profile. From the plot, Ingredient profiles 2-B,S, 3-B,S,C,and B,S,C,L tended to perform slighly better. The introduction of V,into the ingredient profile did seem to decrease the performance overall. Additionally, Ingredient profile 5- B,S,C,V,L had the highest IQR of any ingredient profile,illustrated in the summary statistics. 
+
+```{r, results = 'hide'}
+sort(table(choco$Ingredients), decreasing = TRUE)
+IngredientVec <- c('2- B,S','3- B,S,C','4- B,S,C,L','4- B,S,C,V','5- B,S,C,V,L')
+choco.SubIngredients = choco[choco$Ingredients %in% IngredientVec ,]
+choco.SubIngredients$Factor = as.factor(choco.SubIngredients$Ingredients)
+```
+
+```{r}
+boxplot(choco.SubIngredients$Rating ~ choco.SubIngredients$Factor, xlab = 'Ingredient Profile',ylab = 'Rating', main = 'Ingredient Profile vs Rating')
+summary(choco.SubIngredients$Rating[choco.SubIngredients$Ingredients == '2- B,S'])
+summary(choco.SubIngredients$Rating[choco.SubIngredients$Ingredients == '3- B,S,C'])
+summary(choco.SubIngredients$Rating[choco.SubIngredients$Ingredients == '4- B,S,C,L'])
+summary(choco.SubIngredients$Rating[choco.SubIngredients$Ingredients == '4- B,S,C,V'])
+summary(choco.SubIngredients$Rating[choco.SubIngredients$Ingredients == '5- B,S,C,V,L'])
+```
+
