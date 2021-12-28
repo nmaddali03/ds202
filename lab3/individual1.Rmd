@@ -1,0 +1,96 @@
+---
+title: "Lab3"
+author: "Neha Maddali"
+date: "9/28/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#install.packages('readxl')
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+getwd()
+dat <- readxl::read_xls('./GSS.xls')
+dat <- dat%>% 
+  rename(year = 'Gss year for this respondent', happiness = 'General happiness', partyid = 'Political party affiliation', income = 'Total family income', sex = 'Respondents sex', educ = 'Highest year of school completed', age = 'Age of respondent', marital = 'Marital status', id = 'Respondent id number', ballot = 'Ballot used for interview')
+dat$educ <- suppressWarnings(as.numeric(dat$educ))
+dat$age <- suppressWarnings(as.numeric(dat$age))
+```
+
+## Question 1
+1. Find the average years of education for the respondents with each marital status. Arrange your output in a meaningful order and print. Describe any patterns you find.
+```{r}
+dat%>%
+  select(marital, educ)%>%
+  filter(educ<21)%>%
+  group_by(marital)%>%
+  summarise(educ_mean = mean(educ), .groups='drop')
+```
+**My analysis** We can see for all types of marital status, the average years of education range between approximately 11 to 15. The marital status with the highest average years is the "no answer" status. The marital status with the lowest average years of education is "widowed"
+
+## Question 2
+Create a single data frame containing records for the better educated respondents with each marital status. A “better educated” respondent is someone who has strictly more years of education than the average among those with the same marital status. Print the structure of the data frame.
+```{r}
+df <- dat%>%
+  group_by(marital)%>%
+  filter(educ<21)%>%
+  mutate(maritalMedian = median(educ))%>%
+  filter(educ > maritalMedian)%>%
+  select(-maritalMedian)%>%
+  ungroup()
+str(df)
+```
+**My analysis** In order to get this data frame, I grouped the data by marital status. I then filtered the education years. I then filtered the education years to only under 21, because any number over 20 represented "no answer." I then added a new column that was the median amount of education years for each political party and again filtered the data to only include rows with years of education higher than the median. To clean things up, I then got rid of the column I just made and ungrouped the data.
+
+## Question 3
+How is the happiness of a respondent related to his/her marriage status? Define that a person is happy if the response to question is “Very happy” or “Pretty happy”.
+```{r}
+dat%>% 
+  select(happiness, marital)%>% 
+  ggplot(aes(x=marital, fill=happiness)) + geom_bar(position='fill') + ggtitle("Happiness and Marital Status")
+dat%>% 
+  select(happiness, marital)%>% 
+  group_by(marital)%>%
+  count(happiness)
+```
+**My analysis** From the plot, we can see that "married" has the most happy respondents. The group with the least amount of happy people are those who did not answer. However, if we disregard the "no answer" category, the group with the least amount of happy people are those who are separated.
+
+## Question 4
+Does party affiliation affect the relationship you found in the last question?
+```{r}
+happy<-filter(dat, happiness %in% c('Very happy','Pretty happy'))
+happy$marital<-factor(happy$marital, levels=(c("Married","Never married","Divorced","Widowed","Separated","No answer")))
+hapState<-filter(dat, happiness %in% c('Not too happy','Very happy','Pretty happy'))
+hapState$marital<-factor(hapState$marital, levels=(c("Married","Never married","Divorced","Widowed","Separated","No answer")))
+ggplot(happy, aes(x=marital, fill=partyid))+geom_bar(position='fill')+ggtitle("Percent of Happy Respondents and Their Marital Status")+xlab("Marital Status")+ylab("Percent of Happy Respondents")
+ggplot(hapState, aes(x=marital, fill=happiness))+geom_bar(position='dodge')+facet_wrap(~partyid)+ggtitle("Happiness vs. Marital Status")+xlab('Marital Status')+ylab('Number of Respondents')+coord_flip()
+dat%>%
+  select(happiness, marital, partyid)%>%
+  group_by(marital, partyid)%>%
+  count(happiness)
+```
+**My analysis** The first plot below displays data only from respondents who said they were "very happy" or "pretty happy".  This allows us to see if people of a certain political party tend to be happier.  From the graph, it does not appear that Political Party Affiliation has much of an effect on the relationship between marital status and happiness.  There is a fairly even spread of all the political party affiliations within each column of Marital Status.  Meaning there are republicans, democrats, and independents in every column.  The second plot below displays a graph for each political party.  In addition, it includes data from respondents who said they were "not too happy".  This plot shows similar trends for each political party.  The one exception being for Strong Republican bar chart.  In this chart, The number of very happy people outweigh the number of pretty happy people who are also married.  In general, political party affiliation does not affect the relationship between marital status and happiness. For this I used variables happiness, marital, and partyid.
+
+## Question 5
+How is marital status related to the education of a respondent? What are possible reasons accounting for the patterns you see?
+```{r}
+levels(dat$marital)
+dat$marital<-factor(dat$marital, levels=(c("Married","Never married","Divorced","Widowed","Separated","No answer")))
+ggplot(dat, aes(x=marital, y=educ))+geom_boxplot()+ggtitle("Marital Status vs. Education Level")+xlab('Marital Status')+ylab('Education Level')
+AvgEduInMar<-dat%>%
+  group_by(marital)%>%
+  summarize(mean_education=mean(educ,na.rm=TRUE))%>%
+  arrange(mean_education)
+AvgEduInMar
+ggplot(AvgEduInMar, aes(x=marital, weight=mean_education))+geom_bar()+coord_flip()+ggtitle("Mean Education Year by Marital Status")+ylab("Highest Year of Education (mean)") +xlab("Marital Status")
+dat%>%
+  select(marital, educ)%>%
+  group_by(marital)%>%
+  count(educ)
+```
+**My analysis** Based on the plots below, the mean education levels in each Marital Status are similar.  The means do not differ as much as when we compared education level and political party affiliations.  Surprisingly, the highest level of education belongs to the people who did not answer the question on Marital Status.  This is possibly because people who have a higher level of education may tend to have more pride and so they avoided answering the marital status question in order to preserve their dignity. After, "no answer", the highest education level goes to the people who are never married.  This could be because they are more focused on their careers than in relationships.  This would also account for why "Divorced" is the third highest in education.  Widowed has the lowest mean education level.  For this I used variables marital and educ(education).
